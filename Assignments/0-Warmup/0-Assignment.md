@@ -13,10 +13,10 @@
     - [ ] NO - Not Yet
 
 
-3. Please provide a link to the repository you are using for this class.
+3. Please provide a link to the repository you are using for this class.\
     https://github.com/aae65/CS283
 
-4. Briefly describe what you want to get out of this class.
+4. Briefly describe what you want to get out of this class.\
     I want to learn how to get a better runtime with coding.
 
 5. Briefly describe any concerns you might be having with being successful in this class (if any).
