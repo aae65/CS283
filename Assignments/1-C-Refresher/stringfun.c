@@ -13,12 +13,13 @@ int  setup_buff(char *, char *, int);
 //prototypes for functions to handle required functionality
 int  count_words(char *, int, int);
 //add additional prototypes here
+void reverse_string(char *, char *, int);
 
 
 int setup_buff(char *buff, char *user_str, int len){
     //#4:  Implement the setup buff as per the directions
     int str_length = 0;
-    for (int i = 0; i < user_str; i++){ //while string is not equal to the null terminator
+    for (int i = 0; i < *user_str; i++){ //while string is not equal to the null terminator
         if (*(user_str + i) != '\t' && *(user_str + i) != ' ' && *(user_str + i) != '\n'){ //if char is a non-white space character
             *(buff + str_length) = *(user_str + i); //then copy char to buffer
         } else {
@@ -54,10 +55,30 @@ void usage(char *exename){
 }
 
 int count_words(char *buff, int len, int str_len){
-    return 0; //IMPLEMENT
+    int wc = 0;
+
+    for(int i = 0; i < str_len; i++){
+        if (buff[i] == ' ' && len > 0){
+            wc++;
+        }
+    }
+
+    return wc;
 }
 
 //ADD OTHER HELPER FUNCTIONS HERE FOR OTHER REQUIRED PROGRAM OPTIONS
+void reverse_string(char *str, char *buff, int str_len){
+    int end_idx = str_len - 1;
+    int start_idx = 0;
+
+    while (end_idx > start_idx){
+        str[start_idx] = str[end_idx];
+        str[end_idx] = buff[start_idx];
+
+        start_idx++;
+        end_idx--;
+    }
+}
 
 int main(int argc, char *argv[]){
 
@@ -128,13 +149,18 @@ int main(int argc, char *argv[]){
 
         //TODO:  #5 Implement the other cases for 'r' and 'w' by extending
         //       the case statement options
+        case 'r':
+            reverse_string(input_string, buff, user_str_len);
+            printf("Reversed string: %s\n", input_string);
+            break;
         default:
             usage(argv[0]);
             exit(1);
     }
 
-    //TODO:  #6 Dont forget to free your buffer before exiting
+    //#6 Dont forget to free your buffer before exiting
     print_buff(buff,BUFFER_SZ);
+    free(buff);
     exit(0);
 }
 
