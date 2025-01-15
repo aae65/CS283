@@ -22,14 +22,21 @@ int setup_buff(char *buff, char *user_str, int len){
     //#4:  Implement the setup buff as per the directions
     int str_length = 0;
     for (int i = 0; *(user_str + i) != '\0'; i++){ //while string is not equal to the null terminator
+        if (str_length > len){ //if string is greater than buffer size
+            return -1; //then return string too large code
+        }
         if (*(user_str + i) != '\t' && *(user_str + i) != ' ' && *(user_str + i) != '\n'){ //if char is a non-white space character
             *(buff + str_length) = *(user_str + i); //then copy char to buffer
+            str_length++;
         } else {
-            if (*(user_str + i - 1) != '\t' && *(user_str + i - 1) != ' ' && *(user_str + i - 1) != '\n'){ //if previous char added was NOT a white-space character
+            if (*(user_str + i - 1) != '\t' && *(user_str + i - 1) != ' ' && *(user_str + i - 1) != '\n' && i != 0){ //if previous char added was NOT a white-space character
                 *(buff + str_length) = ' '; //then copy space to buffer
+                str_length++;
             }
         }
-        str_length++;
+    }
+    if (str_length > 0 && *(buff + str_length - 1) == ' ') { //if there is a trailing space
+        str_length--; //then remove from length
     }
     if (str_length > len){ //if string is greater than buffer size
         return -1; //then return string too large code
@@ -45,11 +52,12 @@ int setup_buff(char *buff, char *user_str, int len){
 }
 
 void print_buff(char *buff, int len){
-    printf("Buffer:  ");
+    printf("Buffer:  [");
     for (int i=0; i<len; i++){
         putchar(*(buff+i));
     }
-    putchar('\n');
+    printf("]\n");
+    //putchar('\n');
 }
 
 void usage(char *exename){
@@ -113,19 +121,20 @@ int word_print(char *str, int str_len){
                 wlen++;                                         //increase word length
             }
 
-            printf(" (%d)\n", wlen);                        //print # of chars
+            printf("(%d)\n", wlen);                        //print # of chars
         }
         
         if(wlen > str_len){                             //if word length is greater than string length
             return -2;                                      //return with -2
         }
     }
+
+    printf("\nNumber of words returned: %d\n", wc);
     return 0;                                       
 }
 
 int search_and_replace(char *user_str, char *search, char *replace){
-    printf("Replacing %c with %c in %c.\n", *user_str, *replace, *search);  //placeholder to prevent warning from compiler
-    printf("Not implemented!\n");                                           //
+    printf("Not Implemented!\n");                                           //
     return -1;                                                              //return with -1
 }
 
@@ -182,7 +191,7 @@ int main(int argc, char *argv[]){
 
     user_str_len = setup_buff(buff, input_string, BUFFER_SZ);     //see todos
     if (user_str_len < 0){
-        printf("Error setting up buffer, error = %d", user_str_len);
+        printf("Error setting up buffer, error = %d\n", user_str_len);
         exit(2);
     }
 
@@ -199,12 +208,13 @@ int main(int argc, char *argv[]){
         //#5 Implement the other cases for 'r' and 'w' by extending
         //       the case statement options
         case 'r':
-            rc = reverse_string(input_string, user_str_len);
-            if (rc < 0){
-                printf("Error reversing words, rc = %d\n", rc);
+            reverse_string(input_string, user_str_len);
+            //printf("Reversed string: %s\n", input_string);
+            user_str_len = setup_buff(buff, input_string, BUFFER_SZ);
+            if (user_str_len < 0) {
+                printf("Error setting up buffer, error = %d\n", user_str_len);
                 exit(2);
             }
-            printf("Reversed string: %s\n", input_string);
             break;
 
         case 'w':
@@ -217,8 +227,8 @@ int main(int argc, char *argv[]){
 
         case 'x':
             if (argc != 5){
-                printf("Not enough arguments\n");
-                exit(2);
+                printf("Not Implemented!\n");
+                break;
             }
             rc = search_and_replace(input_string, argv[2], argv[3]);
             if (rc < 0){
@@ -228,6 +238,7 @@ int main(int argc, char *argv[]){
 
         default:
             usage(argv[0]);
+            free(buff);
             exit(1);
     }
 
