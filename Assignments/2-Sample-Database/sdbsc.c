@@ -48,7 +48,7 @@ int open_db(char *dbFile, bool should_truncate){
 /*
  *  get_student
  *      fd:  linux file descriptor
- *      id:  the student id we are looking forname of the
+ *      id:  the student id we are looking for the name of
  *      *s:  a pointer where the located (if found) student data will be
  *           copied
  * 
@@ -88,8 +88,56 @@ int get_student(int fd, int id, student_t *s){
  *            
  */
 int add_student(int fd, int id, char *fname, char *lname, int gpa){
-    printf(M_NOT_IMPL);
-    return NOT_IMPLEMENTED_YET;
+    off_t offset;
+    student_t student;
+    ssize_t bytes_read;
+    ssize_t bytes_written;
+
+    offset = id * sizeof(student_t);
+
+    if(lseek(fd, offset, SEEK_SET) == (off_t) - 1){
+        printf(M_ERR_DB_READ);
+        return ERR_DB_FILE;
+    }
+
+    bytes_read = read(fd, &student, sizeof(student_t));
+    if(bytes_read == -1){
+        printf(M_ERR_DB_READ);
+        return ERR_DB_FILE;
+    }
+
+    if (bytes_read == sizeof(student_t) && memcmp(&student, &(student_t){0}, sizeof(student_t)) != 0){
+        printf(M_ERR_DB_ADD_DUP, id);
+        return ERR_DB_OP;
+    }
+
+    student.id = id;
+    strncpy(student.fname, fname, sizeof(student.fname) - 1);
+    student.fname[sizeof(student.fname) - 1] = '\0';
+    strncpy(student.lname, lname, sizeof(student.lname) - 1);
+    student.lname[sizeof(student.lname) - 1] = '\0';
+    student.gpa = gpa;
+
+    if (lseek(fd, offset, SEEK_SET) == (off_t) - 1){
+        printf(M_ERR_DB_READ);
+        return ERR_DB_FILE;
+    }
+
+    bytes_written = write(fd, &student, sizeof(student_t));
+    if (bytes_written == -1){
+        printf(M_ERR_DB_WRITE);
+        return ERR_DB_FILE;
+    }
+
+    if (bytes_written != sizeof(student_t)){
+        printf(M_ERR_DB_WRITE);
+        return ERR_DB_FILE;        
+    }
+
+    //fprintf(DB_FILE, STUDENT_PRINT_FMT_STRING, student.id, student.fname, student.lname, student.gpa);
+
+    printf(M_STD_ADDED, student.id);
+    return NO_ERROR;
 }
 
 /*
@@ -182,6 +230,11 @@ int count_db_records(int fd){
  *            
  */
 int print_db(int fd){
+    if (lseek(fd, 0, SEEK_END) == 0){
+        printf(M_DB_EMPTY);
+        return NO_ERROR;
+    }
+
     printf(M_NOT_IMPL);
     return NOT_IMPLEMENTED_YET;
 }
