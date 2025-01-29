@@ -59,7 +59,16 @@ int open_db(char *dbFile, bool should_truncate){
  *  console:  Does not produce any console I/O used by other functions
  */
 int get_student(int fd, int id, student_t *s){
-    return NOT_IMPLEMENTED_YET;
+    student_t student;
+
+    while (read(fd, &student, sizeof(student_t)) == sizeof(student_t)){
+        if (memcmp(&student, &(student_t){0}, sizeof(student_t)) != 0 && student.id == id){
+            *s = student;
+            return NO_ERROR;
+        }
+    }
+
+    return SRCH_NOT_FOUND;
 }
 
 /*
@@ -192,8 +201,22 @@ int del_student(int fd, int id){
  *            
  */
 int count_db_records(int fd){
-    printf(M_NOT_IMPL);
-    return NOT_IMPLEMENTED_YET;
+    int count = 0;
+    student_t student;
+
+    while (read(fd, &student, sizeof(student_t)) == sizeof(student)){
+        if (memcmp(&student, &(student_t){0}, sizeof(student_t)) != 0) {
+            count++;
+        }
+    }
+
+    if (lseek(fd, 0, SEEK_END) == 0){
+        printf(M_DB_EMPTY);
+        return NO_ERROR;
+    } else {
+        printf(M_DB_RECORD_CNT, count);
+        return NO_ERROR;
+    }
 }
 
 /*
@@ -230,13 +253,13 @@ int count_db_records(int fd){
  *            
  */
 int print_db(int fd){
-    if (lseek(fd, 0, SEEK_END) == 0){
+    if (count_db_records(fd) == M_DB_EMPTY){
         printf(M_DB_EMPTY);
         return NO_ERROR;
-    }
+    } 
 
-    printf(M_NOT_IMPL);
-    return NOT_IMPLEMENTED_YET;
+    //printf(M_NOT_IMPL);
+    //return NOT_IMPLEMENTED_YET;
 }
 
 /*
@@ -268,7 +291,12 @@ int print_db(int fd){
  *            
  */
 void print_student(student_t *s){
-    printf(M_NOT_IMPL);
+    if (s == NULL || s->id == 0){
+        printf(M_ERR_STD_PRINT);
+    }
+
+    printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST NAME", "LAST_NAME", "GPA");
+    printf(STUDENT_PRINT_FMT_STRING, s->id, s->fname, s->lname, (double)s->gpa/100);    
 }
 
 /*
