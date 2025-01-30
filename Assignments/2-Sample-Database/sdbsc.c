@@ -172,8 +172,31 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa){
  *            
  */
 int del_student(int fd, int id){
-    printf(M_NOT_IMPL);
-    return NOT_IMPLEMENTED_YET;
+    student_t student;
+    off_t offset;
+    
+    if (get_student(fd, id, &student) == NO_ERROR){
+
+        offset = id * sizeof(student_t);
+
+        if(lseek(fd, offset, SEEK_SET) == (off_t) - 1){
+            printf(M_ERR_DB_READ);
+            return ERR_DB_FILE;
+        }
+
+        memset(&student, 0, sizeof(student_t));
+
+        if(write(fd, &student, sizeof(student_t)) == -1){
+            printf(M_ERR_DB_WRITE);
+            return ERR_DB_FILE;
+        }
+
+        printf(M_STD_DEL_MSG, id);
+        return NO_ERROR;
+    }
+
+    printf(M_STD_NOT_FND_MSG, id);
+    return ERR_DB_OP;
 }
 
 /*
@@ -203,20 +226,25 @@ int del_student(int fd, int id){
 int count_db_records(int fd){
     int count = 0;
     student_t student;
+    ssize_t bytes_read;
 
-    while (read(fd, &student, sizeof(student_t)) == sizeof(student)){
+    while ((bytes_read = read(fd, &student, sizeof(student_t))) == sizeof(student_t)){
         if (memcmp(&student, &(student_t){0}, sizeof(student_t)) != 0) {
             count++;
         }
     }
 
-    if (lseek(fd, 0, SEEK_END) == 0){
+    if (bytes_read == -1){
+        printf(M_ERR_DB_READ);
+        return ERR_DB_FILE;
+    }
+
+    if (count == 0){
         printf(M_DB_EMPTY);
-        return NO_ERROR;
     } else {
         printf(M_DB_RECORD_CNT, count);
-        return NO_ERROR;
     }
+    return count;
 }
 
 /*
@@ -253,13 +281,24 @@ int count_db_records(int fd){
  *            
  */
 int print_db(int fd){
-    if (count_db_records(fd) == M_DB_EMPTY){
+    student_t student;
+
+    if (lseek(fd, 0, SEEK_END) == 0){
         printf(M_DB_EMPTY);
         return NO_ERROR;
-    } 
+    }
 
-    //printf(M_NOT_IMPL);
-    //return NOT_IMPLEMENTED_YET;
+    lseek(fd, 0, SEEK_SET);
+
+    printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST NAME", "LAST_NAME", "GPA");
+
+    while (read(fd, &student, sizeof(student_t)) == sizeof(student_t)){
+        if (student.id != 0){
+            printf(STUDENT_PRINT_FMT_STRING, student.id, student.fname, student.lname, (double)student.gpa/100);
+        }
+    }
+
+    return NO_ERROR;
 }
 
 /*
