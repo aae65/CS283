@@ -97,56 +97,55 @@ int get_student(int fd, int id, student_t *s){
  *            
  */
 int add_student(int fd, int id, char *fname, char *lname, int gpa){
-    off_t offset;
+    off_t offset;                   
     student_t student;
     ssize_t bytes_read;
     ssize_t bytes_written;
 
     offset = id * sizeof(student_t);
 
-    if(lseek(fd, offset, SEEK_SET) == (off_t) - 1){
-        printf(M_ERR_DB_READ);
-        return ERR_DB_FILE;
+    if(lseek(fd, offset, SEEK_SET) == (off_t) - 1){                     //if the position is unreachable
+        printf(M_ERR_DB_READ);                                          //then print read error
+        return ERR_DB_FILE;                                             //return database error
     }
 
-    bytes_read = read(fd, &student, sizeof(student_t));
-    if(bytes_read == -1){
-        printf(M_ERR_DB_READ);
-        return ERR_DB_FILE;
+    bytes_read = read(fd, &student, sizeof(student_t));                 //set bytes_read to the current student
+    if(bytes_read == -1){                                               //if bytes_read has an error
+        printf(M_ERR_DB_READ);                                          //then print read error
+        return ERR_DB_FILE;                                             //return database error
     }
 
-    if (bytes_read == sizeof(student_t) && memcmp(&student, &(student_t){0}, sizeof(student_t)) != 0){
-        printf(M_ERR_DB_ADD_DUP, id);
-        return ERR_DB_OP;
+    if (bytes_read == sizeof(student_t) && memcmp(&student, &(student_t){0}, sizeof(student_t)) != 0){  //if bytes_read is the size of a student struct and student is not 0
+        printf(M_ERR_DB_ADD_DUP, id);                                                                   //print id duplicate error                
+        return ERR_DB_OP;                                                                               //return duplicate error
     }
 
-    student.id = id;
-    strncpy(student.fname, fname, sizeof(student.fname) - 1);
-    student.fname[sizeof(student.fname) - 1] = '\0';
-    strncpy(student.lname, lname, sizeof(student.lname) - 1);
-    student.lname[sizeof(student.lname) - 1] = '\0';
-    student.gpa = gpa;
+    student.id = id;                                            //set student.id to id
+    strncpy(student.fname, fname, sizeof(student.fname) - 1);   //copy first name
+    student.fname[sizeof(student.fname) - 1] = '\0';            //add null terminator to first name
+    strncpy(student.lname, lname, sizeof(student.lname) - 1);   //copy last name
+    student.lname[sizeof(student.lname) - 1] = '\0';            //add null terminator to last name
+    student.gpa = gpa;                                          //set student.gpa to gpa (don't calculate)
 
-    if (lseek(fd, offset, SEEK_SET) == (off_t) - 1){
-        printf(M_ERR_DB_READ);
-        return ERR_DB_FILE;
+    if (lseek(fd, offset, SEEK_SET) == (off_t) - 1){            //if beginning of file has an error
+        printf(M_ERR_DB_READ);                                  //then print read error
+        return ERR_DB_FILE;                                     //return database error
     }
 
-    bytes_written = write(fd, &student, sizeof(student_t));
-    if (bytes_written == -1){
-        printf(M_ERR_DB_WRITE);
-        return ERR_DB_FILE;
+    bytes_written = write(fd, &student, sizeof(student_t));     //set bytes_written to write student
+    if (bytes_written == -1){                                   //if bytes_wrtitten has an error
+        printf(M_ERR_DB_WRITE);                                 //then print write error
+        return ERR_DB_FILE;                                     //return database error
     }
 
-    if (bytes_written != sizeof(student_t)){
-        printf(M_ERR_DB_WRITE);
-        return ERR_DB_FILE;        
+    if (bytes_written != sizeof(student_t)){                    //if bytes_written is not the size of the student struct
+        printf(M_ERR_DB_WRITE);                                 //then print write error
+        return ERR_DB_FILE;                                     //return database error
     }
 
-    //fprintf(DB_FILE, STUDENT_PRINT_FMT_STRING, student.id, student.fname, student.lname, student.gpa);
 
-    printf(M_STD_ADDED, student.id);
-    return NO_ERROR;
+    printf(M_STD_ADDED, student.id);                            //print success
+    return NO_ERROR;                                            //return no error
 }
 
 /*
@@ -175,28 +174,28 @@ int del_student(int fd, int id){
     student_t student;
     off_t offset;
     
-    if (get_student(fd, id, &student) == NO_ERROR){
+    if (get_student(fd, id, &student) == NO_ERROR){                 //if get_student returns no error
 
-        offset = id * sizeof(student_t);
+        offset = id * sizeof(student_t);                            //then set offset to id*struct
 
-        if(lseek(fd, offset, SEEK_SET) == (off_t) - 1){
-            printf(M_ERR_DB_READ);
-            return ERR_DB_FILE;
+        if(lseek(fd, offset, SEEK_SET) == (off_t) - 1){             //if beginning of file has an error
+            printf(M_ERR_DB_READ);                                  //then print read error
+            return ERR_DB_FILE;                                     //return database error
         }
 
-        memset(&student, 0, sizeof(student_t));
+        memset(&student, 0, sizeof(student_t));                     //set memory allocation of student to 0 (use memset)
 
-        if(write(fd, &student, sizeof(student_t)) == -1){
-            printf(M_ERR_DB_WRITE);
-            return ERR_DB_FILE;
+        if(write(fd, &student, sizeof(student_t)) == -1){           //if writing student returns issue
+            printf(M_ERR_DB_WRITE);                                 //then return write error
+            return ERR_DB_FILE;                                     //print database error
         }
 
-        printf(M_STD_DEL_MSG, id);
-        return NO_ERROR;
+        printf(M_STD_DEL_MSG, id);                                  //print success message
+        return NO_ERROR;                                            //return no error
     }
 
-    printf(M_STD_NOT_FND_MSG, id);
-    return ERR_DB_OP;
+    printf(M_STD_NOT_FND_MSG, id);                                  //print id not found message
+    return ERR_DB_OP;                                               //return database error
 }
 
 /*
@@ -224,27 +223,27 @@ int del_student(int fd, int id){
  *            
  */
 int count_db_records(int fd){
-    int count = 0;
+    int count = 0;          //count variable
     student_t student;
     ssize_t bytes_read;
 
-    while ((bytes_read = read(fd, &student, sizeof(student_t))) == sizeof(student_t)){
-        if (memcmp(&student, &(student_t){0}, sizeof(student_t)) != 0) {
-            count++;
+    while ((bytes_read = read(fd, &student, sizeof(student_t))) == sizeof(student_t)){      //while bytes_read is equal to size of student struct
+        if (memcmp(&student, &(student_t){0}, sizeof(student_t)) != 0) {                    //if memcmp of student is not 0
+            count++;                                                                        //then increase count
         }
     }
 
-    if (bytes_read == -1){
-        printf(M_ERR_DB_READ);
-        return ERR_DB_FILE;
+    if (bytes_read == -1){                                                                  //if bytes_read has an error
+        printf(M_ERR_DB_READ);                                                              //then print read error
+        return ERR_DB_FILE;                                                                 //return database error
     }
 
-    if (count == 0){
-        printf(M_DB_EMPTY);
-    } else {
-        printf(M_DB_RECORD_CNT, count);
+    if (count == 0){                                                                        //if count is 0
+        printf(M_DB_EMPTY);                                                                 //then print empty message
+    } else {                                                                                //else    
+        printf(M_DB_RECORD_CNT, count);                                                     //print record count
     }
-    return count;
+    return count;                                                                           //return count
 }
 
 /*
@@ -283,22 +282,22 @@ int count_db_records(int fd){
 int print_db(int fd){
     student_t student;
 
-    if (lseek(fd, 0, SEEK_END) == 0){
-        printf(M_DB_EMPTY);
-        return NO_ERROR;
+    if (lseek(fd, 0, SEEK_END) == 0){       //if beginning of file is 0
+        printf(M_DB_EMPTY);                 //then print empty database message
+        return NO_ERROR;                    //return no error
     }
 
-    lseek(fd, 0, SEEK_SET);
+    lseek(fd, 0, SEEK_SET);                 //go to beginning of file
 
-    printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST NAME", "LAST_NAME", "GPA");
+    printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST NAME", "LAST_NAME", "GPA");                                       //print heading
 
-    while (read(fd, &student, sizeof(student_t)) == sizeof(student_t)){
-        if (student.id != 0){
-            printf(STUDENT_PRINT_FMT_STRING, student.id, student.fname, student.lname, (double)student.gpa/100);
+    while (read(fd, &student, sizeof(student_t)) == sizeof(student_t)){                                             //while there is no read error
+        if (student.id != 0){                                                                                       //if student is not deleted
+            printf(STUDENT_PRINT_FMT_STRING, student.id, student.fname, student.lname, (double)student.gpa/100);    //then print student
         }
     }
 
-    return NO_ERROR;
+    return NO_ERROR;                                                                                                //return no error
 }
 
 /*
@@ -330,12 +329,12 @@ int print_db(int fd){
  *            
  */
 void print_student(student_t *s){
-    if (s == NULL || s->id == 0){
-        printf(M_ERR_STD_PRINT);
+    if (s == NULL || s->id == 0){       //if pointer is null or id is null
+        printf(M_ERR_STD_PRINT);        //then print student print error
     }
 
-    printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST NAME", "LAST_NAME", "GPA");
-    printf(STUDENT_PRINT_FMT_STRING, s->id, s->fname, s->lname, (double)s->gpa/100);    
+    printf(STUDENT_PRINT_HDR_STRING, "ID", "FIRST NAME", "LAST_NAME", "GPA");           //print header message
+    printf(STUDENT_PRINT_FMT_STRING, s->id, s->fname, s->lname, (double)s->gpa/100);    //print student
 }
 
 /*
