@@ -32,8 +32,44 @@
  *  Standard Library Functions You Might Want To Consider Using
  *      memset(), strcmp(), strcpy(), strtok(), strlen(), strchr()
  */
-int build_cmd_list(char *cmd_line, command_list_t *clist)
-{
-    printf(M_NOT_IMPL);
-    return EXIT_NOT_IMPL;
+int build_cmd_list(char *cmd_line, command_list_t *clist){
+    char *token;
+    char *arg_token;
+
+    clist->num = 0;
+
+    token = strtok(cmd_line, PIPE_STRING);
+    while (token != NULL){
+        while (*token == SPACE_CHAR){
+            token++;
+        }
+        char *end = token + strlen(token) - 1;
+        while (end > token && *end == SPACE_CHAR){
+            end--;
+        }
+        *(end + 1) = '\0';
+
+        if (strlen(token) >= ARG_MAX){
+            return ERR_CMD_OR_ARGS_TOO_BIG;
+        }
+
+        if (clist->num < CMD_MAX){
+            arg_token = strtok(token, SPACE_CHAR);
+            if (arg_token != NULL){
+                strncpy(clist->commands[clist->num].exe, arg_token, EXE_MAX - 1);
+                clist->commands[clist->num].exe[EXE_MAX - 1] = '\0';
+
+                char *args = token + strlen(arg_token) + 1;
+                strncpy(clist->commands[clist->num].args, args, ARG_MAX - 1);
+                clist->commands[clist->num].args[ARG_MAX - 1] = '\0';
+            }
+            clist->num++;
+        } else {
+            return ERR_TOO_MANY_COMMANDS;
+        }
+
+        token = strtok(NULL, PIPE_STRING);
+    }
+
+    return OK;
 }
