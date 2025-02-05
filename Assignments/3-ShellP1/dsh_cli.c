@@ -48,7 +48,7 @@ int main()
 {
     char cmd_buff[ARG_MAX];
     int rc = 0;
-    command_list_t clist;
+    command_list_t *clist = malloc(sizeof(command_list_t));
 
     while(1){
         printf("%s", SH_PROMPT);
@@ -64,12 +64,32 @@ int main()
             break;
         }
 
-        if (strcmp(cmd_buff, SPACE_CHAR) == 0){
+
+        rc = build_cmd_list(cmd_buff, clist);
+        if(rc == ERR_TOO_MANY_COMMANDS){
+            printf(CMD_ERR_PIPE_LIMIT, CMD_MAX);
+            printf("%s\n", SH_PROMPT);
+            exit(EXIT_SUCCESS);
+        } else if (rc == ERR_CMD_OR_ARGS_TOO_BIG) {
+            exit(ERR_TOO_MANY_COMMANDS);
+        } else if (rc == WARN_NO_CMDS){
             printf(CMD_WARN_NO_CMD);
-            exit(WARN_NO_CMDS);
-        }
+            printf("%s\n", SH_PROMPT);
+        } 
+        break; 
+        
     }
     
-    printf(CMD_OK_HEADER, rc);
+    //printf("%s", SH_PROMPT);
+    printf(CMD_OK_HEADER, clist->num);
+    for (int j = 0, k = 1; j < clist->num; j++, k++){
+        if (clist->commands[j].args[0] != '\0'){
+            printf("<%d> %s[%s]\n", k, clist->commands[j].exe, clist->commands[j].args);
+        } else {
+            printf("<%d> %s\n", k, clist->commands[j].exe);
+        }
+    }
+    printf("%s\n", SH_PROMPT);
+    free(clist);
     exit(EXIT_SUCCESS);
 }

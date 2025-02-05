@@ -34,12 +34,21 @@
  */
 int build_cmd_list(char *cmd_line, command_list_t *clist){
     char *token;
-    char *arg_token;
+    char *rest = cmd_line;
 
     clist->num = 0;
 
-    token = strtok(cmd_line, PIPE_STRING);
+    token = strtok_r(rest, PIPE_STRING, &rest);
+
+    if (strcmp(token, "") == 0){
+        return WARN_NO_CMDS;
+    }
+
     while (token != NULL){
+        if (strcmp(token, EXIT_CMD) == 0){
+            break;
+        }
+
         while (*token == SPACE_CHAR){
             token++;
         }
@@ -49,26 +58,26 @@ int build_cmd_list(char *cmd_line, command_list_t *clist){
         }
         *(end + 1) = '\0';
 
-        if (strlen(token) >= ARG_MAX){
-            return ERR_CMD_OR_ARGS_TOO_BIG;
-        }
-
-        if (clist->num < CMD_MAX){
-            arg_token = strtok(token, SPACE_CHAR);
-            if (arg_token != NULL){
-                strncpy(clist->commands[clist->num].exe, arg_token, EXE_MAX - 1);
-                clist->commands[clist->num].exe[EXE_MAX - 1] = '\0';
-
-                char *args = token + strlen(arg_token) + 1;
-                strncpy(clist->commands[clist->num].args, args, ARG_MAX - 1);
-                clist->commands[clist->num].args[ARG_MAX - 1] = '\0';
-            }
-            clist->num++;
-        } else {
+        if (clist->num >= CMD_MAX){
             return ERR_TOO_MANY_COMMANDS;
         }
 
-        token = strtok(NULL, PIPE_STRING);
+        command_t *cmd = &clist->commands[clist->num++];
+
+        char *exe_token = strtok(token, " ");
+        if (exe_token != NULL){
+            strncpy(cmd->exe, exe_token, EXE_MAX - 1);
+            cmd->exe[EXE_MAX - 1] = '\0';
+        }
+
+        char *arg_token = strtok(NULL, " ");
+        while (arg_token != NULL){
+            strncpy(cmd->args, arg_token, ARG_MAX - 1);
+            cmd->args[ARG_MAX - 1] = '\0';
+            arg_token = strtok(NULL, " ");
+        }
+
+        token = strtok_r(rest, PIPE_STRING, &rest);
     }
 
     return OK;
