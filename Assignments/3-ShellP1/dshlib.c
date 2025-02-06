@@ -5,6 +5,16 @@
 
 #include "dshlib.h"
 
+void dragon(){                                      //dragon function:
+    FILE *file = fopen("dragon.txt", "r");          //open file
+    char line[256];                                 //set line buff
+    while (fgets(line, sizeof(line), file)) {       //while not at EOF
+        printf("%s", line);                         //print line
+    }
+    printf("\n");                                   //print newline to preserve spacing for rest of code
+    fclose(file);                                   //close file
+}
+
 /*
  *  build_cmd_list
  *    cmd_line:     the command line from the user
@@ -33,52 +43,52 @@
  *      memset(), strcmp(), strcpy(), strtok(), strlen(), strchr()
  */
 int build_cmd_list(char *cmd_line, command_list_t *clist){
-    char *token;
-    char *rest = cmd_line;
+    char *token;                                    //token var
+    char *rest = cmd_line;                          //set rest of line to whole line
+    clist->num = 0;                                 //set num to 0
 
-    clist->num = 0;
+    token = strtok_r(rest, PIPE_STRING, &rest);     //set token until pipe is reached
 
-    token = strtok_r(rest, PIPE_STRING, &rest);
+    while (token != NULL){                          //while token is not null
+        if (strcmp(token, EXIT_CMD) == 0){          //if token is exit
+            break;                                  //then break
+        }
 
-    if (strcmp(token, "") == 0){
-        return WARN_NO_CMDS;
+        while (*token == SPACE_CHAR){               //while token is space
+            token++;                                //increment token
+        }
+        char *end = token + strlen(token) - 1;      //create end variable
+        while (end > token && *end == SPACE_CHAR){  //while end is greater than token and end is not equal to space
+            end--;                                  //decrement end
+        }
+        *(end + 1) = '\0';                          //set end of end to null terminator
+
+        if (clist->num >= CMD_MAX){                 //if clist is at capacity
+            return ERR_TOO_MANY_COMMANDS;           //then return too many commands
+        }
+
+        command_t *cmd = &clist->commands[clist->num++];        //create struct for commands and args
+
+        memset(cmd->args, 0, ARG_MAX);                          //clear args to stop repeats
+
+        char *exe_token = strtok(token, " ");                   //create command token
+        if (exe_token != NULL){                                 //while command token is not null
+            if (strcmp(exe_token, "dragon") == 0){              //if token is dragon
+                dragon();                                       //then dragon function
+            }
+            strncpy(cmd->exe, exe_token, EXE_MAX - 1);          //copy token to list
+            cmd->exe[EXE_MAX - 1] = '\0';                       //add null terminating character
+        }
+
+        char *arg_token = strtok(NULL, " ");                    //create arg token
+        while (arg_token != NULL){                              //while arg token is not null
+            strncat(cmd->args, arg_token, ARG_MAX - 1);         //add arg to arg string in list
+            cmd->args[ARG_MAX - 1] = '\0';                      //add null terminating character
+            arg_token = strtok(NULL, " ");                      //get new arg
+        }
+
+        token = strtok_r(rest, PIPE_STRING, &rest);             //get new token
     }
 
-    while (token != NULL){
-        if (strcmp(token, EXIT_CMD) == 0){
-            break;
-        }
-
-        while (*token == SPACE_CHAR){
-            token++;
-        }
-        char *end = token + strlen(token) - 1;
-        while (end > token && *end == SPACE_CHAR){
-            end--;
-        }
-        *(end + 1) = '\0';
-
-        if (clist->num >= CMD_MAX){
-            return ERR_TOO_MANY_COMMANDS;
-        }
-
-        command_t *cmd = &clist->commands[clist->num++];
-
-        char *exe_token = strtok(token, " ");
-        if (exe_token != NULL){
-            strncpy(cmd->exe, exe_token, EXE_MAX - 1);
-            cmd->exe[EXE_MAX - 1] = '\0';
-        }
-
-        char *arg_token = strtok(NULL, " ");
-        while (arg_token != NULL){
-            strncpy(cmd->args, arg_token, ARG_MAX - 1);
-            cmd->args[ARG_MAX - 1] = '\0';
-            arg_token = strtok(NULL, " ");
-        }
-
-        token = strtok_r(rest, PIPE_STRING, &rest);
-    }
-
-    return OK;
+    return OK;                                                  //return ok
 }
