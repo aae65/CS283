@@ -51,14 +51,69 @@
  *  Standard Library Functions You Might Want To Consider Using (assignment 2+)
  *      fork(), execvp(), exit(), chdir()
  */
+
+int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
+    if (cmd_line == NULL || cmd_buff == NULL){
+        return ERR_MEMORY;
+    }
+
+    clear_cmd_buff(cmd_buff);
+
+    cmd_buff->_cmd_buffer = strdup(cmd_line);
+    if (cmd_buff->_cmd_buffer == NULL){
+        return ERR_MEMORY;
+    }
+
+    char *token = strtok(cmd_buff->_cmd_buffer, " ");
+    while (token != NULL && cmd_buff->argc < CMD_ARGV_MAX - 1){
+        char *clean_token = token;
+        char *dst = token;
+        while (*token != '\0'){
+            if (*token != '"' && *token != '\''){
+                *dst++ = *token;
+            }
+            token++;
+        }
+        *dst = '\0';
+        
+        cmd_buff->argv[cmd_buff->argc++] = clean_token;
+        token = strtok(NULL, " ");
+    }
+    cmd_buff->argv[cmd_buff->argc] = NULL;
+
+    if (cmd_buff->argc >= CMD_ARGV_MAX - 1){
+        return ERR_CMD_OR_ARGS_TOO_BIG;
+    }
+
+    return OK;
+}
+
+int clear_cmd_buff(cmd_buff_t *cmd_buff){
+    if (cmd_buff == NULL){
+        return ERR_MEMORY;
+    }
+
+    if (cmd_buff->_cmd_buffer != NULL){
+        free(cmd_buff->_cmd_buffer);
+        cmd_buff->_cmd_buffer = NULL;
+    }
+
+    for (int i = 0; i < CMD_ARGV_MAX; i++){
+        cmd_buff->argv[i] = NULL;
+    }
+    cmd_buff->argc = 0;
+
+    return OK;
+}
+
 int exec_local_cmd_loop()
 {
-    char cmd_buff[ARG_MAX];                                     //allocate max argument size to buffer
+    char cmd_buff[ARG_MAX];
     int rc = 0;
-    command_list_t *clist = malloc(sizeof(command_list_t));     //allocate size of struct to list
+    cmd_buff_t *cmd = malloc(sizeof(cmd_buff_t));
 
     // TODO IMPLEMENT MAIN LOOP
-    while(1){
+    while (1){
         printf("%s", SH_PROMPT);
         if (fgets(cmd_buff, ARG_MAX, stdin) == NULL){
             printf("\n");
@@ -66,42 +121,46 @@ int exec_local_cmd_loop()
         }
         //remove the trailing \n from cmd_buff
         cmd_buff[strcspn(cmd_buff,"\n")] = '\0';
- 
-        //IMPLEMENT THE REST OF THE REQUIREMENTS
-        if (strcmp(cmd_buff, EXIT_CMD) == 0){               //if user inputs exit
-            break;                                          //then break
+
+        if (strcmp(cmd_buff, EXIT_CMD) == 0){
+            rc = EXIT_SUCCESS;
+            break;
         }
 
-        if (strcmp(cmd_buff, "") == 0){                     //if user enters nothing
-            printf(CMD_WARN_NO_CMD);                        //then print no command error
-            continue;                                       //continue
+        if (strcmp(cmd_buff, "") == 0){
+            printf(CMD_WARN_NO_CMD);
+            continue;
         }
- 
-        rc = build_cmd_list(cmd_buff, clist);                                                       //set return code to build list function
-        if(rc == ERR_TOO_MANY_COMMANDS){                                                            //if there are too many commands
-            printf(CMD_ERR_PIPE_LIMIT, CMD_MAX);                                                    //then print too many commands
-        } else if (rc == ERR_CMD_OR_ARGS_TOO_BIG) {                                                 //if too many args and commands
-            printf(CMD_ERR_PIPE_LIMIT, 8);                                                          //then print pipe error
-        } else {                                                                                    //else
-            printf(CMD_OK_HEADER, clist->num);                                                      //print header string
-            for (int j = 0, k = 1; j < clist->num; j++, k++){                                       //iterate through list with two vars, one iterating and one counting
-                if (clist->commands[j].args[0] != '\0'){                                            //if there are args
-                    printf("<%d> %s[%s]\n", k, clist->commands[j].exe, clist->commands[j].args);    //print them
-                } else {                                                                            //else
-                    printf("<%d> %s\n", k, clist->commands[j].exe);                                 //print the command
+        
+
+        // TODO IMPLEMENT parsing input to cmd_buff_t *cmd_buff
+        rc = build_cmd_buff(cmd_buff, cmd);
+        if (rc == ERR_MEMORY){
+            break;
+        } else if (rc == ERR_CMD_OR_ARGS_TOO_BIG){
+            break;
+        } else {
+            // TODO IMPLEMENT if not built-in command, fork/exec as an external command
+            // for example, if the user input is "ls -l", you would fork/exec the command "ls" with the arg "-l"
+            if (strcmp(cmd->argv[0], "dragon") == 0){
+                print_dragon();
+            } else if (strcmp(cmd->argv[0], "echo") == 0){
+                for (int i = 1; i < cmd->argc; i++){
+                    printf("%s", cmd->argv[i]);
                 }
+                printf("\n");
+            } else if (strcmp(cmd->argv[0], "cd") == 0){
+                if (cmd->argv[1] != NULL) {
+                    chdir(cmd->argv[1]);
+                }
+            } else if (strcmp(cmd->argv[0], "pwd") == 0){
+                //TODO
             }
         }
+    
     }
-    free(clist);                //free list
+    clear_cmd_buff(cmd);
+    free(cmd);
 
-    // TODO IMPLEMENT parsing input to cmd_buff_t *cmd_buff
-
-    // TODO IMPLEMENT if built-in command, execute builtin logic for exit, cd (extra credit: dragon)
-    // the cd command should chdir to the provided directory; if no directory is provided, do nothing
-
-    // TODO IMPLEMENT if not built-in command, fork/exec as an external command
-    // for example, if the user input is "ls -l", you would fork/exec the command "ls" with the arg "-l"
-
-    return OK;
+    return rc;
 }
