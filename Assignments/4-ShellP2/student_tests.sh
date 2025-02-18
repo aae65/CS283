@@ -96,14 +96,33 @@ EOF
     [ "$status" -eq 0 ]
 }
 
-@test "echo works" {
-    run ./dsh <<EOF
+@test "echo handles unquoted spaces" {
+    run "./dsh" <<EOF
     echo ur mom
-    exit
 EOF
 
     stripped_output=$(echo "$output" | tr -d '[:space:]')
-    expected_output="dsh2>urmomdsh2>dsh2>cmdloopreturned0"
+    expected_output="urmomdsh2>dsh2>cmdloopreturned0"
+
+    echo "Captured stdout:" 
+    echo "Output: $output"
+    echo "Exit Status: $status"
+    echo "${stripped_output} -> ${expected_output}"
+
+    # Check exact match
+    [ "$stripped_output" = "$expected_output" ]
+
+    [ "$status" -eq 0 ]
+}
+
+@test "pwd works" {
+    current=$(pwd)
+    run "${current}/dsh" <<EOF
+    pwd
+EOF
+
+    stripped_output=$(echo $output | tr -d '[:space:]')
+    expected_output=$(pwd)"dsh2>dsh2>cmdloopreturned0"
 
     echo "Captured stdout:" 
     echo "Output: $output"

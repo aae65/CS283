@@ -52,56 +52,71 @@
  *      fork(), execvp(), exit(), chdir()
  */
 
+//build cmd_buff function
 int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
-    if (cmd_line == NULL || cmd_buff == NULL){
-        return ERR_MEMORY;
+    if (cmd_line == NULL || cmd_buff == NULL){              //if a line could not be filled
+        return ERR_MEMORY;                                  //return memory error
     }
 
-    clear_cmd_buff(cmd_buff);
+    free_cmd_buff(cmd_buff);                               //clear buff to prevent errors
 
-    cmd_buff->_cmd_buffer = strdup(cmd_line);
-    if (cmd_buff->_cmd_buffer == NULL){
-        return ERR_MEMORY;
+    cmd_buff->_cmd_buffer = strdup(cmd_line);               //duplicate line into buffer for struct
+    if (cmd_buff->_cmd_buffer == NULL){                     //if buffer is empty
+        return ERR_MEMORY;                                  //then return memory error
     }
 
-    char *token = strtok(cmd_buff->_cmd_buffer, " ");
-    while (token != NULL && cmd_buff->argc < CMD_ARGV_MAX - 1){
-        char *clean_token = token;
-        char *dst = token;
-        while (*token != '\0'){
-            if (*token != '"' && *token != '\''){
-                *dst++ = *token;
-            }
-            token++;
+    char *token = cmd_buff->_cmd_buffer;                            //create token and set to buffer
+    while (*token != '\0' && cmd_buff->argc < CMD_ARGV_MAX - 1){    //while token is not ended and argc is less than max
+        while (isspace(*token)){                                    //while token is space
+            token++;                                                //continue through token
         }
-        *dst = '\0';
-        
-        cmd_buff->argv[cmd_buff->argc++] = clean_token;
-        token = strtok(NULL, " ");
-    }
-    cmd_buff->argv[cmd_buff->argc] = NULL;
 
-    if (cmd_buff->argc >= CMD_ARGV_MAX - 1){
-        return ERR_CMD_OR_ARGS_TOO_BIG;
+        char *stripped_token = token;                               //create stripped token variable
+        if (*token == '"' || *token == '\''){                       //if part of token is a quotation
+            char quote = *token++;                                  //then create variable and continue through token
+            stripped_token = token;                                 //set stripped token to current token
+            while (*token != '\0' && *token != quote) {             //while token is not ended and token is not quote
+                token++;                                            //continue through token
+            }
+            if (*token == quote){                                   //if token is quote
+                *token++ = '\0';                                    //set end of token to null terminating character
+            }
+        } else {
+            while (*token != '\0' && !isspace(*token)){             //while token is not ended and token is not space
+                token++;                                            //move through token
+            }
+        }
+
+        if (*token != '\0') {                                       //if token is not ended
+            *token++ = '\0';                                        //then set end of token to null terminating character
+        }
+
+        cmd_buff->argv[cmd_buff->argc++] = stripped_token;          //set next argument of struct to stripped token
+    }
+    cmd_buff->argv[cmd_buff->argc] = NULL;                          //set last argument of struct to null
+
+    if (cmd_buff->argc >= CMD_ARGV_MAX - 1){                        //if argc is greater than max
+        return ERR_CMD_OR_ARGS_TOO_BIG;                             //then return error
     }
 
     return OK;
 }
 
-int clear_cmd_buff(cmd_buff_t *cmd_buff){
-    if (cmd_buff == NULL){
-        return ERR_MEMORY;
+//free cmd buff function
+int free_cmd_buff(cmd_buff_t *cmd_buff){
+    if (cmd_buff == NULL){                          //if cmd_buff is empty
+        return ERR_MEMORY;                          //then return memory error
     }
 
-    if (cmd_buff->_cmd_buffer != NULL){
-        free(cmd_buff->_cmd_buffer);
-        cmd_buff->_cmd_buffer = NULL;
+    if (cmd_buff->_cmd_buffer != NULL){             //if buffer is not empty
+        free(cmd_buff->_cmd_buffer);                //then free buffer
+        cmd_buff->_cmd_buffer = NULL;               //and set to null
     }
 
-    for (int i = 0; i < CMD_ARGV_MAX; i++){
-        cmd_buff->argv[i] = NULL;
+    for (int i = 0; i < CMD_ARGV_MAX; i++){         //loop through all arguments
+        cmd_buff->argv[i] = NULL;                   //set each to null
     }
-    cmd_buff->argc = 0;
+    cmd_buff->argc = 0;                             //reset argc counter
 
     return OK;
 }
@@ -112,7 +127,8 @@ int exec_local_cmd_loop()
     int rc = 0;
     cmd_buff_t *cmd = malloc(sizeof(cmd_buff_t));
 
-    // TODO IMPLEMENT MAIN LOOP
+    //same loop as previous assignment
+    //new implementations are commented
     while (1){
         printf("%s", SH_PROMPT);
         if (fgets(cmd_buff, ARG_MAX, stdin) == NULL){
@@ -134,33 +150,39 @@ int exec_local_cmd_loop()
         
 
         // TODO IMPLEMENT parsing input to cmd_buff_t *cmd_buff
-        rc = build_cmd_buff(cmd_buff, cmd);
-        if (rc == ERR_MEMORY){
-            break;
-        } else if (rc == ERR_CMD_OR_ARGS_TOO_BIG){
-            break;
+        rc = build_cmd_buff(cmd_buff, cmd);                         //set return code to build_cmd_buff function
+        if (rc == ERR_MEMORY){                                      //if there is a memory error
+            break;                                                  //then break
+        } else if (rc == ERR_CMD_OR_ARGS_TOO_BIG){                  //if there is an argument error
+            break;                                                  //then break
         } else {
             // TODO IMPLEMENT if not built-in command, fork/exec as an external command
             // for example, if the user input is "ls -l", you would fork/exec the command "ls" with the arg "-l"
-            if (strcmp(cmd->argv[0], "dragon") == 0){
-                print_dragon();
-            } else if (strcmp(cmd->argv[0], "echo") == 0){
-                for (int i = 1; i < cmd->argc; i++){
-                    printf("%s", cmd->argv[i]);
+            if (strcmp(cmd->argv[0], "dragon") == 0){               //if command is dragon
+                print_dragon();                                     //then print_dragon command
+            } else if (strcmp(cmd->argv[0], "cd") == 0){            //else if command is cd
+                if (cmd->argv[1] != NULL) {                         //then if the next argument is not null
+                    chdir(cmd->argv[1]);                            //change directory to next argument
                 }
-                printf("\n");
-            } else if (strcmp(cmd->argv[0], "cd") == 0){
-                if (cmd->argv[1] != NULL) {
-                    chdir(cmd->argv[1]);
+            } else {                    
+                pid_t pid = fork();                                 //create pid_t variable and fork
+                if (pid == 0){                                      //if fork was ok
+                    execvp(cmd->argv[0], cmd->argv);                //then execvp
+                    rc = OK;                                        //set rc to ok
+                    break;                                          //and break
+                } else if (pid > 0){                                //else if fork called for status
+                    int status;                                     //then create status var
+                    waitpid(pid, &status, 0);                       //wait for status
+                } else {    
+                    rc = ERR_EXEC_CMD;                              //set rc to error
+                    break;                                          //break
                 }
-            } else if (strcmp(cmd->argv[0], "pwd") == 0){
-                //TODO
             }
         }
     
     }
-    clear_cmd_buff(cmd);
-    free(cmd);
+    free_cmd_buff(cmd);     //free cmd_buff
+    free(cmd);              //free cmd
 
-    return rc;
+    return rc;              //return rc
 }
