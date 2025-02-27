@@ -35,7 +35,7 @@ typedef struct command{
 
 typedef struct command_list{
     int num;
-    cmd_buff_t commands[CMD_MAX];
+    command_t commands[CMD_MAX];
 }command_list_t;
 
 //Special character #defines
@@ -65,6 +65,7 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff);
 int close_cmd_buff(cmd_buff_t *cmd_buff);
 int build_cmd_list(char *cmd_line, command_list_t *clist);
 int free_cmd_list(command_list_t *cmd_lst);
+void print_dragon();
 
 //built in command stuff
 typedef enum {
