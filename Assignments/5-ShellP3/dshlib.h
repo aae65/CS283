@@ -10,12 +10,6 @@
 // Longest command that can be read from the shell
 #define SH_CMD_MAX EXE_MAX + ARG_MAX
 
-typedef struct command
-{
-    char exe[EXE_MAX];
-    char args[ARG_MAX];
-} command_t;
-
 typedef struct cmd_buff
 {
     int  argc;
@@ -35,7 +29,7 @@ typedef struct command{
 
 typedef struct command_list{
     int num;
-    command_t commands[CMD_MAX];
+    cmd_buff_t commands[CMD_MAX];
 }command_list_t;
 
 //Special character #defines
@@ -63,9 +57,10 @@ int free_cmd_buff(cmd_buff_t *cmd_buff);
 int clear_cmd_buff(cmd_buff_t *cmd_buff);
 int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff);
 int close_cmd_buff(cmd_buff_t *cmd_buff);
-int build_cmd_list(char *cmd_line, command_list_t *clist);
+int build_cmd_list(char *cmd_buff, command_list_t *clist);
 int free_cmd_list(command_list_t *cmd_lst);
 void print_dragon();
+char *strtokq(char *str);
 
 //built in command stuff
 typedef enum {
