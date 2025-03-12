@@ -12,9 +12,6 @@
 #include "dshlib.h"
 #include "rshlib.h"
 
-
-
-
 /*
  * exec_remote_cmd_loop(server_ip, port)
  *      server_ip:  a string in ip address format, indicating the servers IP
@@ -93,7 +90,69 @@
  */
 int exec_remote_cmd_loop(char *address, int port)
 {
-    return WARN_RDSH_NOT_IMPL;
+    int cli_socket = start_client(address, port);
+    if (cli_socket < 0){
+        fprintf(stderr, "Error: Unable to connect to server.\n");
+        return ERR_RDSH_CLIENT;
+    }
+
+    char *request_buff = malloc(RDSH_COMM_BUFF_SZ);
+    if (request_buff == NULL){
+        return client_cleanup(cli_socket, request_buff, NULL, ERR_MEMORY);
+    }
+
+    char *resp_buff = malloc(RDSH_COMM_BUFF_SZ);
+    if (resp_buff == NULL){
+        return client_cleanup(cli_socket, request_buff, resp_buff, ERR_MEMORY);
+    }
+
+    int rc = OK;
+    while (1){
+        printf("%s", SH_PROMPT);
+        if (fgets(request_buff, RDSH_COMM_BUFF_SZ, stdin) == NULL){
+            printf("\n");
+            break;
+        }
+        
+        request_buff[strcspn(request_buff, "\n")] = '\0';
+
+        if (strcmp(request_buff, EXIT_CMD) == 0){
+            rc = OK;
+            break;
+        }
+
+        int bytes_to_send = strlen(request_buff) + 1;
+        int bytes_sent = send(cli_socket, request_buff, bytes_to_send, 0);
+        if (bytes_sent != bytes_to_send){
+            fprintf(stderr, "Error: partial send. Sent %d, expected %d\n", bytes_sent, bytes_to_send);
+            rc = ERR_RDSH_COMMUNICATION;
+            break;
+        }
+
+        while (1) {
+            int bytes_revieved = recv(cli_socket, resp_buff, RDSH_COMM_BUFF_SZ, 0);
+            if (bytes_revieved < 0){
+                fprintf(stderr, "Error: recieve failed\n");
+                rc = ERR_RDSH_COMMUNICATION;
+                break;
+            } else if (bytes_revieved == 0){
+                fprintf(stderr, "Error: server disconnected unexpectedly.\n");
+                rc = ERR_RDSH_COMMUNICATION;
+                break;
+            }
+
+            printf("%.*s", bytes_revieved, resp_buff);
+            if (resp_buff[bytes_revieved - 1] == RDSH_EOF_CHAR){
+                break;
+            }
+        }
+
+        if (rc != OK){
+            break;
+        }
+    }
+
+    return client_cleanup(cli_socket, request_buff, resp_buff, rc);
 }
 
 /*
@@ -120,7 +179,32 @@ int exec_remote_cmd_loop(char *address, int port)
  * 
  */
 int start_client(char *server_ip, int port){
-    return WARN_RDSH_NOT_IMPL;
+    int cli_socket;
+    struct sockaddr_in server_addr;
+
+    cli_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (cli_socket < 0){
+        perror("socket");
+        return ERR_RDSH_CLIENT;
+    }
+
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(port);
+
+    if (inet_pton(AF_INET, server_ip, &server_addr.sin_addr) <= 0){
+        fprintf(stderr, "Invalid address/ Address not supported: %s\n", server_ip);
+        close(cli_socket);
+        return ERR_RDSH_CLIENT;
+    }
+
+    if (connect(cli_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+        perror("connect");
+        close(cli_socket);
+        return ERR_RDSH_CLIENT;
+    }
+
+    return cli_socket;
 }
 
 /*
